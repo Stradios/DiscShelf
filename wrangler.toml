@@ -1,0 +1,8 @@
+name = "discshelf-api"
+main = "worker.js"
+compatibility_date = "2026-10-01"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "discshelf"
+database_id = "PASTE-YOUR-DATABASE-ID-HERE"

@@ -8,8 +8,12 @@ function read(key, fallback) {
   try { const v = JSON.parse(localStorage.getItem(key)); return v ?? fallback; }
   catch { return fallback; }
 }
+// Address of your community-database Worker, e.g. 'https://discshelf-api.yourname.workers.dev'
+// (no trailing slash). Leave empty to run fully local. See worker/SETUP.md.
+const COMMUNITY_API = 'https://discshelf-api.discshelf.workers.dev';
+
 let library = read(LIB_KEY, []);
-let settings = read(SET_KEY, { tmdbKey: '' });
+let settings = Object.assign({ tmdbKey: '', share: false, useCommunity: true }, read(SET_KEY, {}));
 
 function persist() {
   try { localStorage.setItem(LIB_KEY, JSON.stringify(library)); }
@@ -93,6 +97,39 @@ async function lookupBarcode(code) {
     return j.items && j.items[0] ? j.items[0].title : null;
   } catch { return null; }
 }
+async function communityLookup(code) {
+  if (!COMMUNITY_API || !settings.useCommunity) return null;
+  try {
+    const r = await fetch(`${COMMUNITY_API}/lookup?barcode=${encodeURIComponent(code)}`);
+    if (!r.ok) return null;
+    const j = await r.json();
+    return j.found ? j : null;
+  } catch { return null; }
+}
+// Sends only barcode, title, format, year and TMDB info. Never notes, edition or the library itself.
+async function contribute(entries) {
+  if (!COMMUNITY_API || !settings.share) return 0;
+  const todo = entries.filter(e => e.barcode && e.barcode.length >= 8 && !e.shared);
+  let sent = 0;
+  for (let i = 0; i < todo.length; i += 50) {
+    const chunk = todo.slice(i, i + 50);
+    try {
+      const r = await fetch(`${COMMUNITY_API}/submit`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(chunk.map(e => ({
+          barcode: e.barcode, title: e.title, format: e.format, year: e.year, tmdbId: e.tmdbId, poster: e.poster
+        })))
+      });
+      if (r.status === 400) { chunk.forEach(e => { e.shared = true; }); continue; } // nothing valid; don't retry forever
+      if (!r.ok) break;
+      chunk.forEach(e => { e.shared = true; });
+      sent += chunk.length;
+    } catch { break; }
+  }
+  if (sent) persist();
+  return sent;
+}
 function titleMatches(title) {
   const n = norm(title);
   if (n.length < 3) return [];
@@ -120,12 +157,26 @@ async function handleCode(raw) {
     return;
   }
 
-  const found = await lookupBarcode(code);
-  const title = cleanTitle(found);
-  const format = guessFormat(found);
-  if (found) {
+  // Ask the community database first, then the free UPC lookup.
+  const community = await communityLookup(code);
+  let found = null, title = '', format = '', source = 'the barcode lookup';
+  $('#f-poster').value = ''; $('#f-tmdb').value = '';
+  if (community) {
+    found = community.title; title = community.title; format = community.format;
+    source = 'the community database';
     $('#f-title').value = title;
-    if (format) $('#f-format').value = format;
+    $('#f-format').value = format;
+    $('#f-year').value = community.year || '';
+    $('#f-poster').value = community.poster || '';
+    $('#f-tmdb').value = community.tmdbId || '';
+  } else {
+    found = await lookupBarcode(code);
+    title = cleanTitle(found);
+    format = guessFormat(found);
+    if (found) {
+      $('#f-title').value = title;
+      if (format) $('#f-format').value = format;
+    }
   }
   const similar = found ? titleMatches(title) : [];
   $('#scan-msg').textContent = '';
@@ -136,10 +187,10 @@ async function handleCode(raw) {
     show(box,
       sameFmt ? `⚠ You probably own this (${format})` : '⚠ You own this title, maybe a different format or edition',
       'warn', fmtList(similar),
-      `This barcode isn't saved, but the lookup says "${found}". ${sameFmt ? 'It may be another edition of a disc you already have.' : 'Check that the format is the one you want.'}`);
+      `This barcode isn't saved, but ${source} says "${found}". ${sameFmt ? 'It may be another edition of a disc you already have.' : 'Check that the format is the one you want.'}`);
   } else if (found) {
     box.classList.add('result-new');
-    show(box, 'Not in your library', '', [], `Lookup says: "${found}". Check the details below and add it if you buy it.`);
+    show(box, 'Not in your library', '', [], `${source[0].toUpperCase() + source.slice(1)} says: "${found}". Check the details below and add it if you buy it.`);
   } else {
     box.classList.add('result-new');
     show(box, 'Barcode not recognised', '', [], 'No title found for this barcode. Search for the title below; the barcode will be remembered once you add it.');
@@ -293,6 +344,7 @@ $('#add-form').addEventListener('submit', e => {
   if (dupe && !confirm(`You already have "${dupe.title}" on ${dupe.format}. Add another copy anyway?`)) return;
   library.push(entry);
   persist();
+  contribute([entry]); // only does anything if the person opted in
   e.target.reset();
   $('#f-poster').value = ''; $('#f-tmdb').value = '';
   $('#tmdb-results').textContent = '';
@@ -309,6 +361,27 @@ $('#btn-save-key').addEventListener('click', () => {
   $('#btn-save-key').textContent = 'Saved ✓';
   setTimeout(() => $('#btn-save-key').textContent = 'Save key', 1500);
 });
+
+/* ---------- Community database settings ---------- */
+{
+  const share = $('#c-share'), use = $('#c-use'), all = $('#btn-share-all'), msg = $('#c-msg');
+  share.checked = !!settings.share;
+  use.checked = settings.useCommunity !== false;
+  if (!COMMUNITY_API) {
+    [share, use, all].forEach(el => { el.disabled = true; });
+    msg.textContent = 'The community database is not set up in this copy of the app yet.';
+  }
+  share.addEventListener('change', () => { settings.share = share.checked; saveSettings(); });
+  use.addEventListener('change', () => { settings.useCommunity = use.checked; saveSettings(); });
+  all.addEventListener('click', async () => {
+    if (!settings.share) { msg.textContent = 'Turn on "Share barcode info" first.'; return; }
+    const pending = library.filter(i => i.barcode && !i.shared);
+    if (!pending.length) { msg.textContent = 'Nothing new to share: every disc with a barcode has already been shared.'; return; }
+    msg.textContent = 'Sharing…';
+    const n = await contribute(pending);
+    msg.textContent = n ? `Shared ${n} disc${n === 1 ? '' : 's'}. Thank you!` : 'Could not reach the community database. Try again later.';
+  });
+}
 
 $('#btn-export').addEventListener('click', () => {
   const data = { app: 'discshelf', version: 1, exportedAt: new Date().toISOString(), library };
@@ -338,7 +411,7 @@ $('#file-import').addEventListener('change', async e => {
       if (!exists) {
         library.push({ id: i.id || uid(), title: String(i.title), format: i.format || 'Other', year: i.year || '',
           edition: i.edition || '', barcode: i.barcode || '', poster: i.poster || '', tmdbId: i.tmdbId || '',
-          addedAt: i.addedAt || new Date().toISOString() });
+          addedAt: i.addedAt || new Date().toISOString(), shared: i.shared === true });
         added++;
       }
     }

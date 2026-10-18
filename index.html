@@ -97,6 +97,14 @@
       <p id="io-msg" class="muted"></p>
     </div>
     <div class="card">
+      <h2>Community database</h2>
+      <p class="muted">When you scan a barcode that someone else has already added, the title, format and poster are filled in for you. Looking up sends the barcode you scan. Sharing is optional and off by default: if you turn it on, each disc you add with a barcode sends only the barcode, title, format, year and TMDB id. Your library, your notes and the edition field are never sent.</p>
+      <label style="color:var(--text);font-size:15px"><input type="checkbox" id="c-use" style="width:auto;margin:0 8px 0 0">Look up scanned barcodes in the community database</label>
+      <label style="color:var(--text);font-size:15px"><input type="checkbox" id="c-share" style="width:auto;margin:0 8px 0 0">Share barcode info from discs I add, to help others</label>
+      <button id="btn-share-all">Share my existing discs now</button>
+      <p id="c-msg" class="muted"></p>
+    </div>
+    <div class="card">
       <h2>TMDB API key</h2>
       <p class="muted">Needed for title search, posters and years. Free at themoviedb.org (Settings → API → "API Key (v3 auth)"). It's stored only on this device.</p>
       <input id="s-tmdb" placeholder="Paste your TMDB v3 API key">
