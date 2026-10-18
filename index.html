@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#14161c">
+<title>DiscShelf</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon.svg">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+  <h1>DiscShelf</h1>
+  <nav>
+    <button class="tab active" data-tab="library">Library</button>
+    <button class="tab" data-tab="scan">Scan / Add</button>
+    <button class="tab" data-tab="settings">Settings</button>
+  </nav>
+</header>
+
+<main>
+  <!-- LIBRARY -->
+  <section id="tab-library" class="panel active">
+    <div class="row">
+      <input id="filter-text" type="search" placeholder="Search your library…">
+      <select id="filter-format">
+        <option value="">All formats</option>
+        <option>DVD</option><option>Blu-ray</option><option>4K UHD</option><option>HD DVD</option><option>Other</option>
+      </select>
+    </div>
+    <p id="count" class="muted"></p>
+    <div id="grid" class="grid"></div>
+  </section>
+
+  <!-- SCAN / ADD -->
+  <section id="tab-scan" class="panel">
+    <div class="card">
+      <div class="video-wrap" id="video-wrap" hidden>
+        <video id="video" playsinline muted></video>
+        <div class="reticle"></div>
+      </div>
+      <div class="row">
+        <button id="btn-scan" class="primary">Scan barcode</button>
+        <button id="btn-stop" hidden>Stop camera</button>
+      </div>
+      <div class="row">
+        <input id="manual-code" inputmode="numeric" placeholder="…or type the barcode number">
+        <button id="btn-code">Check</button>
+      </div>
+      <p id="scan-msg" class="muted"></p>
+    </div>
+
+    <div id="result" class="card" hidden></div>
+
+    <form id="add-form" class="card" autocomplete="off">
+      <h2>Add to library</h2>
+      <label>Title
+        <div class="row">
+          <input id="f-title" required placeholder="Battlestar Galactica">
+          <button type="button" id="btn-tmdb">Find on TMDB</button>
+        </div>
+      </label>
+      <div id="tmdb-results" class="tmdb-results"></div>
+      <div class="row">
+        <label class="grow">Format
+          <select id="f-format">
+            <option>DVD</option><option>Blu-ray</option><option>4K UHD</option><option>HD DVD</option><option>Other</option>
+          </select>
+        </label>
+        <label class="grow">Year
+          <input id="f-year" inputmode="numeric" placeholder="2004">
+        </label>
+      </div>
+      <label>Edition / notes (optional)
+        <input id="f-edition" placeholder="Complete series box set, Region B…">
+      </label>
+      <label>Barcode (optional)
+        <input id="f-barcode" inputmode="numeric">
+      </label>
+      <input id="f-poster" type="hidden">
+      <input id="f-tmdb" type="hidden">
+      <button class="primary" type="submit">Add — I own this</button>
+    </form>
+  </section>
+
+  <!-- SETTINGS -->
+  <section id="tab-settings" class="panel">
+    <div class="card">
+      <h2>Your library file</h2>
+      <p class="muted">Your library lives only in this browser, on this device. Export it to back it up, move it to another phone, or share it. Importing merges, so nothing is overwritten.</p>
+      <div class="row">
+        <button id="btn-export" class="primary">Export library</button>
+        <button id="btn-import">Import library…</button>
+        <input id="file-import" type="file" accept=".json,application/json" hidden>
+      </div>
+      <p id="io-msg" class="muted"></p>
+    </div>
+    <div class="card">
+      <h2>TMDB API key</h2>
+      <p class="muted">Needed for title search, posters and years. Free at themoviedb.org (Settings → API → "API Key (v3 auth)"). It's stored only on this device.</p>
+      <input id="s-tmdb" placeholder="Paste your TMDB v3 API key">
+      <button id="btn-save-key">Save key</button>
+    </div>
+    <div class="card">
+      <h2>Danger zone</h2>
+      <button id="btn-wipe" class="danger">Delete entire library</button>
+    </div>
+  </section>
+</main>
+
+<script src="app.js"></script>
+</body>
+</html>
