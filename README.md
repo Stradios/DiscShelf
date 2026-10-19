@@ -6,6 +6,7 @@ A tiny, server-less web app for tracking the DVDs, Blu-rays and other discs you 
 - Export your library as a `.json` file to back it up, move it to another phone, or share it. Import merges it in.
 - Works offline after the first visit (checking your own library needs no connection).
 - Installable to the home screen.
+- Tap a disc to see its details (overview, director or creator, cast, runtime) from TMDB, to check you picked the right title, and to fix it: **Change match** re-links it to another TMDB entry, **Change poster** offers TMDB's other posters, an image link, or a photo of your own case (stored only on your device).
 
 ## Put it on GitHub Pages
 
@@ -35,6 +36,7 @@ The `worker/` folder holds a tiny API (Cloudflare Worker + D1 database) that let
 - On scan, the app asks the community database first, then the free UPC lookup, then you search by hand.
 - Sharing is opt-in (Settings → Community database). Only barcode, title, format, year and TMDB id are sent. Never your library, notes or the edition field.
 - Repeating an existing answer adds a vote and never overwrites it. If people disagree about a barcode, the answer with the most votes is the one shown.
+- The Worker rate-limits requests per visitor address (setup in `worker/SETUP.md`). Your own photos are never uploaded, only TMDB poster links.
 
 ## Things to know
 

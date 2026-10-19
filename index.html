@@ -80,6 +80,7 @@
       </label>
       <input id="f-poster" type="hidden">
       <input id="f-tmdb" type="hidden">
+      <input id="f-type" type="hidden">
       <button class="primary" type="submit">Add — I own this</button>
     </form>
   </section>
@@ -109,6 +110,7 @@
       <p class="muted">Needed for title search, posters and years. Free at themoviedb.org (Settings → API → "API Key (v3 auth)"). It's stored only on this device.</p>
       <input id="s-tmdb" placeholder="Paste your TMDB v3 API key">
       <button id="btn-save-key">Save key</button>
+      <p class="muted"><small>This product uses the TMDB API but is not endorsed or certified by TMDB.</small></p>
     </div>
     <div class="card">
       <h2>Danger zone</h2>
@@ -116,6 +118,17 @@
     </div>
   </section>
 </main>
+
+<dialog id="detail" aria-labelledby="d-title">
+  <div class="d-inner">
+    <div class="d-head">
+      <h2 id="d-title"></h2>
+      <button type="button" id="d-close" aria-label="Close">✕</button>
+    </div>
+    <div id="d-info"></div>
+    <div id="d-panel"></div>
+  </div>
+</dialog>
 
 <script src="app.js"></script>
 </body>

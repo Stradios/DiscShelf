@@ -23,9 +23,26 @@ npx wrangler deploy                      # prints the Worker address
 ```
 Then do step 6 above.
 
-## Recommended: add a rate limit
+## Rate limiting (recommended)
 
-Anyone can call a public API, so add one rule to slow down abuse. In the dashboard open *Security* → *WAF* → *Rate limiting rules* and create a rule that matches requests to your Worker's hostname with URI path `/submit` and limits, say, 30 requests per minute per IP address (the free plan allows at least one rule). The Worker already rejects oversized or malformed submissions.
+Anyone can call a public API, so the Worker counts requests per visitor address and answers "429 rate limited" when someone goes too fast. It uses two Cloudflare *Rate Limiter* bindings. If they are missing, the Worker still works, just without limits.
+
+| Binding name (exact) | Namespace ID | Limit | Period |
+|---|---|---|---|
+| `RL_LOOKUP` | `1001` | 60 | 60 seconds |
+| `RL_SUBMIT` | `1002` | 20 | 60 seconds |
+
+**In the dashboard:** open the Worker → *Settings* → *Bindings* → *Add binding* → *Rate limiter*. Add it twice, once for each row of the table. If the form asks for different fields than the table, use the closest match.
+
+**Or with the command line:** the `[[ratelimits]]` blocks are already in `wrangler.toml`. Run `npx wrangler deploy` from the `worker` folder (Wrangler 4.36 or newer). Pick one method for deploying: a command-line deploy replaces bindings you added by hand in the dashboard.
+
+Things to know:
+- Counting is per Cloudflare location and approximate. It slows abuse down; it is not exact accounting.
+- Visitors on the same network (a family wifi, a mobile carrier) share an address, which is why the limits are generous. Sharing a big library sends 50 discs per request, so 500 discs is 10 requests.
+- A limited request gets status 429. The app handles it quietly: lookups fall back to manual search, and sharing retries later.
+- Cloudflare doesn't show these bindings in the dashboard overview. To see blocked requests, look at the Worker's logs.
+
+Rate limits don't stop someone from voting for a wrong answer on purpose. If you spot bad data, remove it with the SQL below.
 
 ## Cleaning up bad entries
 

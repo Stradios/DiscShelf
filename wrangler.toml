@@ -5,4 +5,22 @@ compatibility_date = "2026-10-01"
 [[d1_databases]]
 binding = "DB"
 database_name = "discshelf"
-database_id = "PASTE-YOUR-DATABASE-ID-HERE"
+database_id = "8c5a0859-0b82-4459-9d9a-ac7c6f7f3ad2"
+
+# Rate limits per visitor address. Needs Wrangler 4.36 or newer.
+# period can only be 10 or 60 seconds. namespace_id must be unique in your account.
+[[ratelimits]]
+name = "RL_LOOKUP"
+namespace_id = "1001"
+
+  [ratelimits.simple]
+  limit = 60
+  period = 60
+
+[[ratelimits]]
+name = "RL_SUBMIT"
+namespace_id = "1002"
+
+  [ratelimits.simple]
+  limit = 20
+  period = 60
